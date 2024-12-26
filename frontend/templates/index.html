@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>トレンド分析 AI</title>
+    <script src="https://cdn.jsdelivr.net/npm/@unocss/runtime"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap">
+    <style>
+        /* Base styles */
+        * {
+            font-family: 'Noto Sans JP', sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f6f8ff 0%, #f1f1ff 100%);
+            min-height: 100vh;
+            color: #1a1a1a;
+        }
+
+        /* Enhanced animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes gradientFlow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Glass morphism effect */
+        .glass-morphism {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Header styles */
+        .header-title {
+            background: linear-gradient(300deg, #2563eb, #9333ea, #db2777);
+            background-size: 200% 200%;
+            animation: gradientFlow 15s ease infinite;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-size: 3.5rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-bottom: 1rem;
+        }
+
+        /* Input area styles */
+        #trend-input {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid rgba(99, 102, 241, 0.1);
+            border-radius: 1rem;
+            padding: 1.25rem;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            transition: all 0.3s ease;
+            resize: vertical;
+            min-height: 150px;
+        }
+
+        #trend-input:focus {
+            outline: none;
+            border-color: rgba(99, 102, 241, 0.5);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+        }
+
+        /* Analysis result styles */
+        .analyzed-word {
+            position: relative;
+            display: inline-block;
+            padding: 0.15rem 0.3rem;
+            margin: 0 0.1rem;
+            border-radius: 0.25rem;
+            transition: all 0.2s ease;
+            cursor: help;
+        }
+
+        .analyzed-word:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        .analyzed-word[data-info]::after {
+            content: attr(data-info);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%) scale(0.8);
+            opacity: 0;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            white-space: nowrap;
+            z-index: 10;
+            pointer-events: none;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .analyzed-word:hover[data-info]::after {
+            opacity: 1;
+            transform: translateX(-50%) scale(1);
+        }
+
+        /* Enhanced trend card styles */
+        .trend-card {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 1rem;
+            padding: 1.25rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .trend-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 20px rgba(0, 0, 0, 0.1);
+            background: rgba(255, 255, 255, 0.95);
+        }
+
+        /* Legend styles */
+        .legend-container {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            padding: 1.5rem;
+            border-radius: 1rem;
+            transform: translateX(120%);
+            transition: transform 0.3s ease;
+            z-index: 50;
+        }
+
+        .legend-container:hover,
+        .legend-container.active {
+            transform: translateX(0);
+        }
+
+        .legend-toggle {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 3rem;
+            height: 3rem;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 49;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .legend-toggle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .legend-toggle svg {
+            width: 1.5rem;
+            height: 1.5rem;
+            color: #4b5563;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .legend-item:hover {
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 0.5rem;
+        }
+
+        .legend-color {
+            width: 1rem;
+            height: 1rem;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Button styles */
+        .analyze-button {
+            background: linear-gradient(135deg, #2563eb, #9333ea);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .analyze-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        .analyze-button:active {
+            transform: translateY(0);
+        }
+
+        /* Analysis result container */
+        #analysis-result {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #analysis-result.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Part of speech colors with enhanced visibility */
+        .pos-名詞, .pos-noun { color: #2563eb; font-weight: 500; }
+        .pos-代名詞, .pos-pronoun { color: #3b82f6; font-weight: 500; }
+        .pos-動詞, .pos-verb { color: #7c3aed; font-weight: 500; }
+        .pos-形容詞, .pos-adjective { color: #db2777; font-weight: 500; }
+        .pos-形容動詞 { color: #e11d48; font-weight: 500; }
+        .pos-副詞, .pos-adverb { color: #9333ea; font-weight: 500; }
+        .pos-連体詞, .pos-determiner { color: #6366f1; font-weight: 500; }
+        .pos-助詞, .pos-particle, .pos-preposition { color: #6b7280; }
+        .pos-助動詞 { color: #4b5563; }
+        .pos-接続詞, .pos-conjunction { color: #8b5cf6; }
+        .pos-感動詞, .pos-interjection { color: #ec4899; font-weight: 500; }
+        .pos-記号, .pos-symbol, .pos-punctuation { color: #9ca3af; }
+        .pos-unknown { color: #6b7280; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 min-h-screen">
+    <div class="max-w-6xl mx-auto px-6 py-12">
+        <!-- Enhanced header -->
+        <header class="text-center mb-16 animate-fade-in">
+            <h1 class="header-title">トレンド分析 AI</h1>
+            <p class="text-xl text-gray-600 mt-4">
+                自然言語処理による高度なテキスト分析・トレンド抽出
+            </p>
+        </header>
+
+        <!-- Main content with improved layout -->
+        <div class="space-y-8">
+            <!-- Input form with enhanced styling -->
+            <div class="glass-morphism rounded-2xl p-8">
+                <div class="mb-6">
+                    <textarea
+                        id="trend-input"
+                        class="w-full transition-all duration-300"
+                        placeholder="分析したいテキストを入力してください..."
+                    ></textarea>
+                </div>
+                <div class="flex justify-between items-center">
+                    <div class="text-sm text-gray-500 flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                        Ctrl + Enter で分析実行
+                    </div>
+                    <button id="analyze-btn" class="analyze-button">
+                        <span>分析する</span>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Analysis results with improved visibility -->
+            <div id="analysis-result" class="glass-morphism rounded-2xl p-8 hidden">
+                <h2 class="text-2xl font-bold mb-6 flex items-center">
+                    <svg class="w-7 h-7 text-indigo-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                    </svg>
+                    形態素解析結果
+                </h2>
+                <div id="analyzed-text" class="space-y-6 text-lg leading-relaxed">
+                    <!-- Analysis results will be inserted here -->
+                </div>
+            </div>
+
+            <!-- Trends grid with enhanced cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Popular trends -->
+                <div class="glass-morphism rounded-2xl p-8">
+                    <h2 class="text-2xl font-bold mb-6 flex items-center">
+                        <svg class="w-7 h-7 text-rose-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                        </svg>
+                        人気トレンド
+                    </h2>
+                    <div id="popular-trends" class="space-y-4">
+                        <!-- Trend cards will be inserted here -->
+                    </div>
+                </div>
+
+                <!-- Latest trends -->
+                <div class="glass-morphism rounded-2xl p-8">
+                    <h2 class="text-2xl font-bold mb-6 flex items-center">
+                        <svg class="w-7 h-7 text-emerald-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        最新トレンド
+                    </h2>
+                    <div id="latest-trends" class="space-y-4">
+                        <!-- Trend cards will be inserted here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 品詞凡例のトグルボタン -->
+        <button class="legend-toggle" id="legend-toggle" title="品詞の凡例を表示">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+        </button>
+
+        <!-- 品詞の凡例（右下に配置） -->
+        <div class="legend-container glass-morphism" id="legend-container">
+            <h3 class="text-lg font-bold mb-4 flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+                品詞の色分け
+            </h3>
+            <div class="grid grid-cols-1 gap-2">
+                <div class="legend-item">
+                    <span class="legend-color" style="background: #2563eb"></span>
+                    <span>名詞</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background: #7c3aed"></span>
+                    <span>動詞</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background: #db2777"></span>
+                    <span>形容詞</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background: #9333ea"></span>
+                    <span>副詞</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background: #6b7280"></span>
+                    <span>助詞</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background: #9ca3af"></span>
+                    <span>記号</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+    <!-- トレンドカードのテンプレート -->
+    <template id="trend-template">
+        <div class="trend-card">
+            <div class="flex justify-between items-start">
+                <div class="flex-1">
+                    <h3 class="text-lg font-bold mb-2"></h3>
+                    <div class="flex items-center space-x-4 text-sm text-gray-600">
+                        <span class="flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                            <span class="count"></span>
+                        </span>
+                        <span class="flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                            </svg>
+                            <span class="score"></span>
+                        </span>
+                    </div>
+                </div>
+                <span class="text-xs text-gray-500 created-at"></span>
+            </div>
+        </div>
+    </template>
+</body>
+</html>
